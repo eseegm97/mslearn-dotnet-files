@@ -1,7 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.IO;
 using System.Collections.Generic;
-using Newtonsoft.Json; 
+using Newtonsoft.Json;
+using System.Text;
+using System.Collections.Specialized;
+using Microsoft.VisualBasic;
+using System.Runtime.CompilerServices;
+using System.ComponentModel.DataAnnotations;
+using System.Formats.Asn1;
+using System.Formats.Tar;
 
 var currentDirectory = Directory.GetCurrentDirectory();
 var storesDirectory = Path.Combine(currentDirectory, "stores");
@@ -12,6 +19,8 @@ Directory.CreateDirectory(salesTotalDir);
 var salesFiles = FindFiles(storesDirectory);
 
 var salesTotal = CalculateSalesTotal(salesFiles);
+
+GenerateSalesSummaryReport(salesFiles, salesTotal, salesTotalDir);
 
 File.AppendAllText(Path.Combine(salesTotalDir, "totals.txt"), $"{salesTotal}{Environment.NewLine}");
 
@@ -48,5 +57,33 @@ double CalculateSalesTotal(IEnumerable<string> salesFiles)
     
     return salesTotal;
 }
+
+void GenerateSalesSummaryReport(
+    IEnumerable<string> salesFiles,
+    double salesTotal,
+    string outputDirectory)
+{
+    var reportPath = Path.Combine(outputDirectory, "summary.txt");
+
+    using var writer = new StreamWriter(reportPath, false);
+
+    writer.WriteLine("Sales Summary");
+    writer.WriteLine("----------------------------");
+    writer.WriteLine($" Total Sales: {salesTotal:C}");
+    writer.WriteLine();
+    writer.WriteLine(" Details:");
+
+    foreach (var file in salesFiles)
+    {
+        string salesJson = File.ReadAllText(file);
+        SalesData? data = JsonConvert.DeserializeObject<SalesData?>(salesJson);
+
+        double fileTotal = data?.Total ?? 0;
+        string fileName = Path.GetFileName(file);
+
+        writer.WriteLine($"  {fileName}: {fileTotal:C}");
+    }
+}
+
 
 record SalesData (double Total);
